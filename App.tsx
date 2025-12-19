@@ -109,10 +109,10 @@ export const App: React.FC = () => {
       <PromoModal isOpen={showPromo} onClose={() => setShowPromo(false)} />
 
       {/* Navbar / Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0">
                     <GraduationCap size={20} />
                 </div>
                 <h1 className="text-xl font-bold tracking-tight text-slate-800">SOAL<span className="text-blue-600">GEN</span></h1>
@@ -120,9 +120,11 @@ export const App: React.FC = () => {
             {exam && !loading && (
                 <button 
                     onClick={handleReset}
-                    className="text-sm font-medium text-slate-500 hover:text-slate-800 flex items-center px-3 py-1.5 rounded-md hover:bg-slate-100 transition-colors"
+                    className="text-sm font-medium text-slate-500 hover:text-slate-800 flex items-center px-3 py-1.5 rounded-md hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
                 >
-                    <ArrowLeft size={16} className="mr-1"/> Buat Baru
+                    <ArrowLeft size={16} className="mr-1"/> 
+                    <span className="hidden sm:inline">Buat Baru</span>
+                    <span className="sm:hidden">Baru</span>
                 </button>
             )}
         </div>
@@ -145,10 +147,19 @@ export const App: React.FC = () => {
             <ConfigForm onGenerate={handleGenerate} isGenerating={loading} />
         ) : (
             <div className="animate-fadeIn pb-12">
-                <div className="mb-6 flex items-end justify-between">
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-900">{exam.config.purpose}</h2>
-                        <p className="text-slate-500">{exam.config.subject} • {exam.config.topic}</p>
+                <div className="mb-6 flex items-start sm:items-end justify-between">
+                    <div className="flex items-center space-x-4">
+                        {exam.config.logoUrl && (
+                            <img 
+                                src={exam.config.logoUrl} 
+                                alt="School Logo" 
+                                className="w-16 h-16 object-contain rounded-md border border-slate-100 bg-white p-1"
+                            />
+                        )}
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-900">{exam.config.purpose}</h2>
+                            <p className="text-slate-500">{exam.config.subject} • {exam.config.topic}</p>
+                        </div>
                     </div>
                     <div className="text-right hidden sm:block">
                         <span className="text-xs font-semibold bg-slate-200 text-slate-600 px-2 py-1 rounded">
@@ -171,7 +182,7 @@ export const App: React.FC = () => {
                 </div>
 
                 {/* Add Buttons Area */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 mb-24">
                     <button 
                         onClick={handleAddQuestion}
                         className="py-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 font-medium hover:border-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center group"

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ExamConfig, EducationLevel, LearningPurpose, CognitiveLevel, QuestionType } from '../types';
-import { BookOpen, Target, BrainCircuit, PenTool, Layout, Sparkles } from 'lucide-react';
+import { BookOpen, Target, PenTool, Sparkles, Upload, Image as ImageIcon, X } from 'lucide-react';
 
 interface ConfigFormProps {
   onGenerate: (config: ExamConfig) => void;
@@ -8,6 +8,7 @@ interface ConfigFormProps {
 }
 
 const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [config, setConfig] = useState<ExamConfig>({
     subject: '',
     topic: '',
@@ -18,11 +19,71 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
     cognitiveLevel: CognitiveLevel.MOTS,
     count: 5,
     style: 'Formal',
-    context: ''
+    context: '',
+    logoUrl: ''
   });
+
+  // Load logo from local storage on mount
+  useEffect(() => {
+    const savedLogo = localStorage.getItem('soalgen_logo');
+    if (savedLogo) {
+      setConfig(prev => ({ ...prev, logoUrl: savedLogo }));
+    }
+  }, []);
 
   const handleChange = (field: keyof ExamConfig, value: any) => {
     setConfig(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (limit initial file to 2MB to be safe before processing)
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Ukuran file terlalu besar. Maksimal 2MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        // Resize logic to ensure cache safety (limit height to 150px)
+        const canvas = document.createElement('canvas');
+        const MAX_HEIGHT = 150;
+        let width = img.width;
+        let height = img.height;
+
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Get compressed base64
+        const dataUrl = canvas.toDataURL('image/png', 0.8);
+        
+        try {
+            localStorage.setItem('soalgen_logo', dataUrl);
+            setConfig(prev => ({ ...prev, logoUrl: dataUrl }));
+        } catch (err) {
+            alert("Gagal menyimpan logo ke penyimpanan lokal (Storage Penuh). Coba gunakan gambar yang lebih kecil.");
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeLogo = () => {
+    localStorage.removeItem('soalgen_logo');
+    setConfig(prev => ({ ...prev, logoUrl: '' }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const isValid = config.subject && config.topic && config.grade;
@@ -44,9 +105,59 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
           <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center">
             <BookOpen className="w-4 h-4 mr-2" /> Informasi Dasar
           </h3>
+
+          {/* Logo Upload Section */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Logo Sekolah / Instansi (Opsional)</label>
+            <div className="flex items-center space-x-4">
+              {config.logoUrl ? (
+                <div className="relative group">
+                    <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-slate-50">
+                        <img src={config.logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
+                    </div>
+                    <button 
+                        onClick={removeLogo}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 transition-colors"
+                        title="Hapus Logo"
+                    >
+                        <X size={12} />
+                    </button>
+                </div>
+              ) : (
+                <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-16 h-16 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-all"
+                >
+                    <ImageIcon size={20} />
+                    <span className="text-[10px] mt-1">Upload</span>
+                </div>
+              )}
+              
+              <div className="flex-1">
+                <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                />
+                 {!config.logoUrl && (
+                    <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-sm text-blue-600 font-medium hover:underline flex items-center"
+                    >
+                        <Upload size={14} className="mr-1" /> Pilih Logo
+                    </button>
+                 )}
+                 <p className="text-xs text-slate-400 mt-1">
+                    Format: PNG/JPG. Disimpan sementara di browser.
+                 </p>
+              </div>
+            </div>
+          </div>
           
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Mata Pelajaran / Kuliah</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Mata Pelajaran / Kuliah <span className="text-red-500">*</span></label>
             <input 
               type="text" 
               placeholder="Contoh: Matematika, Biologi, Pengantar Manajemen"
@@ -57,7 +168,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Materi / Topik Spesifik</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Materi / Topik Spesifik <span className="text-red-500">*</span></label>
             <input 
               type="text" 
               placeholder="Contoh: Hukum Newton, Aljabar Linear"
@@ -79,7 +190,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
                 </select>
             </div>
             <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Kelas/Semester</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Kelas/Semester <span className="text-red-500">*</span></label>
                 <input 
                   type="text" 
                   placeholder="Misal: X Genap"
@@ -188,6 +299,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
         <button
             onClick={() => onGenerate(config)}
             disabled={!isValid || isGenerating}
+            title={!isValid ? "Mohon lengkapi data bertanda bintang (*)" : ""}
             className={`
                 px-8 py-3 rounded-lg font-semibold text-white shadow-lg flex items-center
                 ${!isValid || isGenerating 

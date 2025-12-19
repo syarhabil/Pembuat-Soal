@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, Header, Footer } from 'docx';
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import saveAs from 'file-saver';
 import jsPDF from 'jspdf';
 import { GeneratedExam, Question, QuestionType } from '../types';
@@ -8,7 +8,7 @@ import { GeneratedExam, Question, QuestionType } from '../types';
  */
 const formatOptions = (options: string[] | undefined): string => {
   if (!options || options.length === 0) return '';
-  return options.map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt}`).join('\n');
+  return options.map((opt, i) => `${String.fromCharCode(65 + i)}. ${opt.replace(/^[A-Ea-e][\.\)]\s+/, '').trim()}`).join('\n');
 };
 
 /**
@@ -23,7 +23,8 @@ export const copyToClipboard = (exam: GeneratedExam) => {
     text += `${i + 1}. ${q.text}\n`;
     if ((q.type === QuestionType.MULTIPLE_CHOICE || q.type === QuestionType.TRUE_FALSE) && q.options) {
       q.options.forEach((opt, idx) => {
-        text += `   ${String.fromCharCode(65 + idx)}. ${opt}\n`;
+        const cleanOpt = opt.replace(/^[A-Ea-e][\.\)]\s+/, '').trim();
+        text += `   ${String.fromCharCode(65 + idx)}. ${cleanOpt}\n`;
       });
     }
     text += '\n';
@@ -41,25 +42,89 @@ export const copyToClipboard = (exam: GeneratedExam) => {
  * Generate Word DOCX
  */
 export const generateDOCX = async (exam: GeneratedExam) => {
-  const docChildren: any[] = [
-    new Paragraph({
-      text: exam.config.subject.toUpperCase(),
-      heading: HeadingLevel.HEADING_1,
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 200 }
-    }),
-    new Paragraph({
-      text: `${exam.config.purpose} - ${exam.config.topic}`,
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 400 }
-    }),
-    new Paragraph({
-      text: `Kelas: ${exam.config.grade} | Waktu: 60 Menit (Estimasi)`,
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 400 }
-    }),
-  ];
+  const docChildren: any[] = [];
 
+  // Handle Logo for DOCX
+  if (exam.config.logoUrl) {
+    // Convert base64 data to blob/buffer equivalent for docx is tricky without Buffer in browser
+    // However, docx 7+ supports base64 string directly in ImageRun
+    const cleanBase64 = exam.config.logoUrl.split(',')[1];
+    
+    // Create a table for Header to align Logo Left and Text Center
+    const headerTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+         top: { style: BorderStyle.NONE },
+         bottom: { style: BorderStyle.NONE },
+         left: { style: BorderStyle.NONE },
+         right: { style: BorderStyle.NONE },
+         insideVertical: { style: BorderStyle.NONE },
+         insideHorizontal: { style: BorderStyle.NONE },
+      },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 15, type: WidthType.PERCENTAGE },
+              children: [
+                new Paragraph({
+                    children: [
+                        new ImageRun({
+                            data: cleanBase64,
+                            transformation: { width: 50, height: 50 },
+                            type: "png" // Assuming PNG/JPG, docx handles detection usually, but type prop exists
+                        })
+                    ]
+                })
+              ],
+            }),
+            new TableCell({
+               width: { size: 85, type: WidthType.PERCENTAGE },
+               children: [
+                new Paragraph({
+                    text: exam.config.subject.toUpperCase(),
+                    heading: HeadingLevel.HEADING_1,
+                    alignment: AlignmentType.CENTER,
+                }),
+                new Paragraph({
+                    text: `${exam.config.purpose} - ${exam.config.topic}`,
+                    alignment: AlignmentType.CENTER,
+                }),
+                new Paragraph({
+                    text: `Kelas: ${exam.config.grade} | Waktu: 60 Menit (Estimasi)`,
+                    alignment: AlignmentType.CENTER,
+                }),
+               ]
+            })
+          ],
+        }),
+      ],
+    });
+    docChildren.push(headerTable);
+    docChildren.push(new Paragraph({ text: "", spacing: { after: 200 } })); // Spacer
+  } else {
+      // Standard Header without Logo
+      docChildren.push(
+        new Paragraph({
+          text: exam.config.subject.toUpperCase(),
+          heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          text: `${exam.config.purpose} - ${exam.config.topic}`,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 }
+        }),
+        new Paragraph({
+          text: `Kelas: ${exam.config.grade} | Waktu: 60 Menit (Estimasi)`,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 }
+        })
+      );
+  }
+
+  // Questions Loop
   exam.questions.forEach((q, i) => {
     // Question Text
     docChildren.push(
@@ -75,9 +140,10 @@ export const generateDOCX = async (exam: GeneratedExam) => {
     // Options
     if ((q.type === QuestionType.MULTIPLE_CHOICE || q.type === QuestionType.TRUE_FALSE) && q.options) {
       q.options.forEach((opt, idx) => {
+        const cleanOpt = opt.replace(/^[A-Ea-e][\.\)]\s+/, '').trim();
         docChildren.push(
           new Paragraph({
-            text: `      ${String.fromCharCode(65 + idx)}. ${opt}`,
+            text: `      ${String.fromCharCode(65 + idx)}. ${cleanOpt}`,
             spacing: { after: 50 }
           })
         );
@@ -118,7 +184,17 @@ export const generateDOCX = async (exam: GeneratedExam) => {
 
   const doc = new Document({
     sections: [{
-      properties: {},
+      properties: {
+        page: {
+            // Set Standard A4 Margins (1 inch = 1440 twips)
+            margin: {
+                top: 1440,
+                right: 1440,
+                bottom: 1440,
+                left: 1440,
+            },
+        },
+      },
       children: docChildren,
     }],
   });
@@ -133,12 +209,24 @@ export const generateDOCX = async (exam: GeneratedExam) => {
 export const generatePDF = (exam: GeneratedExam) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 15;
-  const maxLineWidth = pageWidth - margin * 2;
+  
+  // Increase margin to 20mm (2cm) for safer printing area
+  const margin = 20; 
+  const maxLineWidth = pageWidth - (margin * 2);
 
   let y = 20;
 
-  // Header
+  // Handle Logo Logic
+  if (exam.config.logoUrl) {
+      try {
+          // Add Image at top left: (data, format, x, y, width, height)
+          doc.addImage(exam.config.logoUrl, 'PNG', margin, 15, 20, 20);
+      } catch (e) {
+          console.error("Failed to add image to PDF", e);
+      }
+  }
+
+  // Header Text
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
   doc.text(exam.config.subject.toUpperCase(), pageWidth / 2, y, { align: "center" });
@@ -173,7 +261,8 @@ export const generatePDF = (exam: GeneratedExam) => {
     if ((q.type === QuestionType.MULTIPLE_CHOICE || q.type === QuestionType.TRUE_FALSE) && q.options) {
       q.options.forEach((opt, idx) => {
          if (y > 275) { doc.addPage(); y = 20; }
-         const optText = `   ${String.fromCharCode(65 + idx)}. ${opt}`;
+         const cleanOpt = opt.replace(/^[A-Ea-e][\.\)]\s+/, '').trim();
+         const optText = `   ${String.fromCharCode(65 + idx)}. ${cleanOpt}`;
          const optLines = doc.splitTextToSize(optText, maxLineWidth);
          doc.text(optLines, margin, y);
          y += (optLines.length * 6);

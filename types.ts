@@ -1,3 +1,4 @@
+
 export enum QuestionType {
   MULTIPLE_CHOICE = 'Pilihan Ganda',
   ESSAY = 'Esai',
@@ -38,6 +39,7 @@ export interface ExamConfig {
   count: number;
   style: 'Formal' | 'Semi-Formal' | 'Santai';
   context: string;
+  logoUrl?: string; // Base64 string for school logo
 }
 
 export interface Question {
