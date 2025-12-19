@@ -46,8 +46,6 @@ export const generateDOCX = async (exam: GeneratedExam) => {
 
   // Handle Logo for DOCX
   if (exam.config.logoUrl) {
-    // Convert base64 data to blob/buffer equivalent for docx is tricky without Buffer in browser
-    // However, docx 7+ supports base64 string directly in ImageRun
     const cleanBase64 = exam.config.logoUrl.split(',')[1];
     
     // Create a table for Header to align Logo Left and Text Center
@@ -72,7 +70,7 @@ export const generateDOCX = async (exam: GeneratedExam) => {
                         new ImageRun({
                             data: cleanBase64,
                             transformation: { width: 50, height: 50 },
-                            type: "png" // Assuming PNG/JPG, docx handles detection usually, but type prop exists
+                            type: "png"
                         })
                     ]
                 })
@@ -186,7 +184,6 @@ export const generateDOCX = async (exam: GeneratedExam) => {
     sections: [{
       properties: {
         page: {
-            // Set Standard A4 Margins (1 inch = 1440 twips)
             margin: {
                 top: 1440,
                 right: 1440,
@@ -204,13 +201,13 @@ export const generateDOCX = async (exam: GeneratedExam) => {
 };
 
 /**
- * Generate PDF
+ * Internal Logic to Create jsPDF Object
  */
-export const generatePDF = (exam: GeneratedExam) => {
+const createPDFDoc = (exam: GeneratedExam): jsPDF => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Increase margin to 20mm (2cm) for safer printing area
+  // Margin 20mm
   const margin = 20; 
   const maxLineWidth = pageWidth - (margin * 2);
 
@@ -219,7 +216,6 @@ export const generatePDF = (exam: GeneratedExam) => {
   // Handle Logo Logic
   if (exam.config.logoUrl) {
       try {
-          // Add Image at top left: (data, format, x, y, width, height)
           doc.addImage(exam.config.logoUrl, 'PNG', margin, 15, 20, 20);
       } catch (e) {
           console.error("Failed to add image to PDF", e);
@@ -245,7 +241,6 @@ export const generatePDF = (exam: GeneratedExam) => {
 
   // Questions
   exam.questions.forEach((q, i) => {
-    // Check page break
     if (y > 270) {
       doc.addPage();
       y = 20;
@@ -285,5 +280,22 @@ export const generatePDF = (exam: GeneratedExam) => {
      y += 7;
   });
 
+  return doc;
+};
+
+/**
+ * Generate PDF Download
+ */
+export const generatePDF = (exam: GeneratedExam) => {
+  const doc = createPDFDoc(exam);
   doc.save(`Soal_${exam.config.subject}_${exam.config.topic}.pdf`);
+};
+
+/**
+ * Get PDF Blob URL for Preview
+ */
+export const getPDFBlobUrl = (exam: GeneratedExam): string => {
+    const doc = createPDFDoc(exam);
+    // Cast to string to satisfy type requirement (jsPDF types return URL, actual runtime returns string or compatible URL object)
+    return String(doc.output('bloburl'));
 };
