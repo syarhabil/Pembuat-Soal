@@ -1,0 +1,5 @@
+{
+  "name": "SOALGEN",
+  "description": "Generator Soal Guru & Dosen. Buat soal latihan, ulangan, dan ujian berbasis level kognitif (LOTS/HOTS) dalam hitungan menit.",
+  "requestFramePermissions": []
+}
