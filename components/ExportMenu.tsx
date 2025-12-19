@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { GeneratedExam } from '../types';
 import { copyToClipboard, generateDOCX, generatePDF, getPDFBlobUrl } from '../utils/exportUtils';
 import { FileText, File, Check, ClipboardCopy, Eye } from 'lucide-react';
-import PdfPreviewModal from './PdfPreviewModal';
 
 interface ExportMenuProps {
   exam: GeneratedExam;
@@ -10,8 +9,6 @@ interface ExportMenuProps {
 
 const ExportMenu: React.FC<ExportMenuProps> = ({ exam }) => {
   const [copied, setCopied] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const handleCopy = () => {
     copyToClipboard(exam);
@@ -21,8 +18,12 @@ const ExportMenu: React.FC<ExportMenuProps> = ({ exam }) => {
 
   const handlePreview = () => {
     const url = getPDFBlobUrl(exam);
-    setPreviewUrl(url);
-    setShowPreview(true);
+    const newWindow = window.open(url, '_blank');
+    
+    // Check if popup blocked
+    if (!newWindow) {
+        alert("Browser memblokir jendela baru. Mohon izinkan pop-up untuk melihat preview PDF.");
+    }
   };
 
   return (
@@ -66,13 +67,6 @@ const ExportMenu: React.FC<ExportMenuProps> = ({ exam }) => {
             </button>
         </div>
         </div>
-
-        <PdfPreviewModal 
-            isOpen={showPreview} 
-            onClose={() => setShowPreview(false)} 
-            pdfUrl={previewUrl}
-            onDownload={() => generatePDF(exam)}
-        />
     </>
   );
 };
