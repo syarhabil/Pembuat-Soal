@@ -65,7 +65,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, index, onUpdate, 
       <div className="p-4 space-y-4">
         <div className="relative">
             <textarea
-            className="w-full p-3 text-slate-800 text-lg border-none focus:ring-0 resize-none bg-transparent placeholder-slate-300"
+            className="w-full p-3 text-slate-900 text-lg border-none focus:ring-0 resize-none bg-transparent placeholder-slate-300"
             rows={2}
             value={question.text}
             onChange={handleTextChange}
@@ -83,7 +83,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, index, onUpdate, 
                 </span>
                 <input
                   type="text"
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-400 transition-colors"
+                  className="flex-1 bg-slate-50 text-slate-900 border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-400 transition-colors"
                   value={opt}
                   onChange={(e) => handleOptionChange(i, e.target.value)}
                 />
@@ -108,7 +108,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, index, onUpdate, 
                         <span className="font-semibold text-green-800 block mb-1">Kunci Jawaban:</span>
                         <input 
                             type="text" 
-                            className="w-full bg-white border border-green-200 rounded px-2 py-1 text-slate-700 focus:outline-none focus:border-green-400"
+                            className="w-full bg-white text-slate-900 border border-green-200 rounded px-2 py-1 focus:outline-none focus:border-green-400"
                             value={question.correctAnswer || ''}
                             onChange={handleCorrectAnswerChange}
                         />
@@ -117,7 +117,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, index, onUpdate, 
                         <div>
                             <span className="font-semibold text-green-800 block mb-1">Pembahasan:</span>
                             <textarea
-                                className="w-full bg-white border border-green-200 rounded px-2 py-1 text-slate-700 focus:outline-none focus:border-green-400 text-sm"
+                                className="w-full bg-white text-slate-900 border border-green-200 rounded px-2 py-1 focus:outline-none focus:border-green-400 text-sm"
                                 rows={2}
                                 value={question.explanation}
                                 onChange={(e) => onUpdate(question.id, { explanation: e.target.value })}

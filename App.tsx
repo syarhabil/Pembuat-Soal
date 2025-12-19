@@ -1,17 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ExamConfig, GeneratedExam, Question } from './types';
 import { generateQuestions, generateAdditionalQuestion } from './services/geminiService';
 import ConfigForm from './components/ConfigForm';
 import LoadingScreen from './components/LoadingScreen';
 import QuestionCard from './components/QuestionCard';
 import ExportMenu from './components/ExportMenu';
-import { Plus, ArrowLeft, GraduationCap, Sparkles, Loader2 } from 'lucide-react';
+import PromoModal from './components/PromoModal';
+import { Plus, ArrowLeft, GraduationCap, Sparkles, Loader2, Heart, MessageCircle } from 'lucide-react';
 
-const App: React.FC = () => {
+export const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isAddingAi, setIsAddingAi] = useState(false);
   const [exam, setExam] = useState<GeneratedExam | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showPromo, setShowPromo] = useState(false);
+
+  useEffect(() => {
+    // Show promo modal on initial load
+    const timer = setTimeout(() => {
+      setShowPromo(true);
+    }, 1500); // Slight delay for better UX
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleGenerate = async (config: ExamConfig) => {
     setLoading(true);
@@ -95,7 +105,9 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 pb-12">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col">
+      <PromoModal isOpen={showPromo} onClose={() => setShowPromo(false)} />
+
       {/* Navbar / Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -116,7 +128,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 pt-8">
+      <main className="max-w-4xl mx-auto px-4 pt-8 flex-grow w-full">
         
         {/* Error State */}
         {error && (
@@ -132,7 +144,7 @@ const App: React.FC = () => {
         ) : !exam ? (
             <ConfigForm onGenerate={handleGenerate} isGenerating={loading} />
         ) : (
-            <div className="animate-fadeIn">
+            <div className="animate-fadeIn pb-12">
                 <div className="mb-6 flex items-end justify-between">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-900">{exam.config.purpose}</h2>
@@ -186,8 +198,28 @@ const App: React.FC = () => {
             </div>
         )}
       </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-slate-200 py-6 mt-8">
+        <div className="max-w-4xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between text-sm text-slate-500 gap-4">
+          <div className="flex items-center space-x-1">
+            <span>Dibuat dengan</span>
+            <Heart size={14} className="text-red-500 fill-red-500" />
+            <span>oleh <strong>Syarhabil Abdussalam</strong></span>
+          </div>
+          <div className="flex items-center">
+            <a 
+              href="https://wa.me/6282299307009" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center space-x-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-full hover:bg-green-100 transition-colors border border-green-200"
+            >
+              <MessageCircle size={16} />
+              <span>Mau dibuatkan custom? Hubungi WA 082299307009</span>
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
-
-export default App;

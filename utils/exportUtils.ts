@@ -1,5 +1,5 @@
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, Header, Footer } from 'docx';
-import { saveAs } from 'file-saver';
+import saveAs from 'file-saver';
 import jsPDF from 'jspdf';
 import { GeneratedExam, Question, QuestionType } from '../types';
 

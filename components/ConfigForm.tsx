@@ -50,7 +50,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
             <input 
               type="text" 
               placeholder="Contoh: Matematika, Biologi, Pengantar Manajemen"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white text-slate-900"
               value={config.subject}
               onChange={(e) => handleChange('subject', e.target.value)}
             />
@@ -61,7 +61,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
             <input 
               type="text" 
               placeholder="Contoh: Hukum Newton, Aljabar Linear"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white text-slate-900"
               value={config.topic}
               onChange={(e) => handleChange('topic', e.target.value)}
             />
@@ -71,7 +71,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
             <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Jenjang</label>
                 <select 
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                   value={config.level}
                   onChange={(e) => handleChange('level', e.target.value)}
                 >
@@ -83,7 +83,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
                 <input 
                   type="text" 
                   placeholder="Misal: X Genap"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-slate-900"
                   value={config.grade}
                   onChange={(e) => handleChange('grade', e.target.value)}
                 />
@@ -101,7 +101,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Tujuan</label>
               <select 
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                 value={config.purpose}
                 onChange={(e) => handleChange('purpose', e.target.value)}
               >
@@ -111,7 +111,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
              <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Bentuk Soal</label>
               <select 
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                 value={config.questionType}
                 onChange={(e) => handleChange('questionType', e.target.value)}
               >
@@ -152,7 +152,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
                   type="number" 
                   min="1" 
                   max="20"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-slate-900"
                   value={config.count}
                   onChange={(e) => handleChange('count', parseInt(e.target.value))}
                 />
@@ -160,7 +160,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Gaya Bahasa</label>
                 <select 
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
                   value={config.style}
                   onChange={(e) => handleChange('style', e.target.value)}
                 >
@@ -177,7 +177,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
         <label className="block text-sm font-medium text-slate-700 mb-1">Konteks Tambahan (Opsional)</label>
         <textarea 
             placeholder="Contoh: Kaitkan soal dengan fenomena alam terkini, atau gunakan nama tokoh fiksi populer."
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white text-slate-900"
             rows={2}
             value={config.context}
             onChange={(e) => handleChange('context', e.target.value)}
