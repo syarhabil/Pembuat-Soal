@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Question, QuestionType } from '../types';
-import { Trash2, Copy, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trash2, Copy, ChevronDown, ChevronUp, Image as ImageIcon, Upload, RefreshCw, X, Loader2, Sparkles } from 'lucide-react';
 
 interface QuestionCardProps {
   question: Question;
@@ -8,10 +8,21 @@ interface QuestionCardProps {
   onUpdate: (id: string, updated: Partial<Question>) => void;
   onDelete: (id: string) => void;
   onDuplicate: (question: Question) => void;
+  onSearchImage: (questionId: string, text: string) => void;
+  isSearchingImage?: boolean;
 }
 
-const QuestionCard: React.FC<QuestionCardProps> = ({ question, index, onUpdate, onDelete, onDuplicate }) => {
+const QuestionCard: React.FC<QuestionCardProps> = ({ 
+    question, 
+    index, 
+    onUpdate, 
+    onDelete, 
+    onDuplicate,
+    onSearchImage,
+    isSearchingImage = false
+}) => {
   const [showDetails, setShowDetails] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onUpdate(question.id, { text: e.target.value });
@@ -26,6 +37,28 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, index, onUpdate, 
 
   const handleCorrectAnswerChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     onUpdate(question.id, { correctAnswer: e.target.value });
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) {
+        alert("Ukuran file maksimal 2MB.");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        if(event.target?.result) {
+            onUpdate(question.id, { imageUrl: event.target.result as string });
+        }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    onUpdate(question.id, { imageUrl: undefined });
   };
 
   return (
@@ -63,6 +96,62 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, index, onUpdate, 
 
       {/* Editor Body */}
       <div className="p-4 space-y-4">
+        {/* Image Section */}
+        {question.imageUrl ? (
+            <div className="relative group/image inline-block">
+                <img 
+                    src={question.imageUrl} 
+                    alt="Soal" 
+                    className="max-h-64 rounded-lg border border-slate-200 object-contain bg-slate-50"
+                />
+                <button 
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-md opacity-0 group-hover/image:opacity-100 transition-opacity hover:bg-red-600"
+                    title="Hapus Gambar"
+                >
+                    <X size={14} />
+                </button>
+                <div className="absolute bottom-2 right-2 flex space-x-2 opacity-0 group-hover/image:opacity-100 transition-opacity">
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="bg-white text-slate-700 p-1.5 rounded-md shadow-md text-xs font-medium flex items-center hover:bg-slate-50 border border-slate-200"
+                    >
+                        <RefreshCw size={12} className="mr-1" /> Ganti
+                    </button>
+                </div>
+            </div>
+        ) : (
+            <div className="flex space-x-2">
+                <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center px-3 py-1.5 text-xs font-medium text-slate-500 bg-slate-50 border border-slate-200 rounded-md hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                >
+                    <Upload size={14} className="mr-1.5" />
+                    Upload Gambar
+                </button>
+                <button 
+                    onClick={() => onSearchImage(question.id, question.text)}
+                    disabled={isSearchingImage}
+                    className="flex items-center px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 transition-colors disabled:opacity-50"
+                >
+                    {isSearchingImage ? (
+                        <Loader2 size={14} className="mr-1.5 animate-spin" />
+                    ) : (
+                        <Sparkles size={14} className="mr-1.5" />
+                    )}
+                    Cari Gambar (AI)
+                </button>
+            </div>
+        )}
+        
+        <input 
+            type="file" 
+            ref={fileInputRef}
+            onChange={handleImageUpload}
+            accept="image/*"
+            className="hidden"
+        />
+
         <div className="relative">
             <textarea
             className="w-full p-3 text-slate-900 text-lg border-none focus:ring-0 resize-none bg-transparent placeholder-slate-300"

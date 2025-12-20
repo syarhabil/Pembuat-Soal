@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { GoogleGenAI, Type, Schema, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { ExamConfig, Question, QuestionType, CognitiveLevel } from "../types";
 
 // Using process.env.API_KEY as strictly required by guidelines
@@ -67,10 +67,10 @@ export const generateQuestions = async (config: ExamConfig): Promise<Question[]>
         temperature: 0.7, // Balance creativity with adherence to structure
         // Disable safety settings to prevent false positives on academic content
         safetySettings: [
-            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
         ],
       }
     });
@@ -139,3 +139,56 @@ export const generateAdditionalQuestion = async (config: ExamConfig): Promise<Qu
     throw new Error(error.message || "Gagal membuat soal tambahan.");
   }
 };
+
+/**
+ * Finds a relevant image URL for a question using Google Search Grounding.
+ */
+export const findImageForQuestion = async (questionText: string, subject: string): Promise<string | null> => {
+    try {
+        const prompt = `Carikan satu URL gambar publik (format .jpg atau .png) yang sangat relevan untuk mengilustrasikan soal ujian berikut:
+        
+        Mata Pelajaran: ${subject}
+        Pertanyaan: "${questionText}"
+        
+        Instruksi:
+        1. Gunakan Google Search untuk mencari gambar edukatif yang jelas.
+        2. Prioritaskan gambar dari sumber edukasi, Wikimedia, atau domain publik.
+        3. Kembalikan HANYA URL gambar tersebut. Jangan ada teks lain.
+        4. Jika tidak menemukan URL gambar langsung, kembalikan teks "null".`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+                tools: [{ googleSearch: {} }],
+                temperature: 0.1
+            }
+        });
+
+        const result = response.text?.trim();
+        
+        // Simple validation to check if it looks like a URL
+        if (result && result.startsWith('http') && result.length < 500) {
+            return result;
+        }
+
+        // Fallback: Check grounding chunks if the text response wasn't a clean URL
+        const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        if (groundingChunks) {
+             // Try to find a web URI that looks like an image from sources
+             // Note: Google Search tool mainly returns web pages, not direct image hotlinks usually, 
+             // but sometimes the model can extract one.
+             // This is a best-effort attempt.
+             for (const chunk of groundingChunks) {
+                if (chunk.web?.uri && (chunk.web.uri.endsWith('.jpg') || chunk.web.uri.endsWith('.png'))) {
+                    return chunk.web.uri;
+                }
+             }
+        }
+        
+        return null;
+    } catch (error) {
+        console.error("Error finding image:", error);
+        return null;
+    }
+}

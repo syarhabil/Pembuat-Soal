@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ExamConfig, GeneratedExam, Question } from './types';
-import { generateQuestions, generateAdditionalQuestion } from './services/geminiService';
+import { generateQuestions, generateAdditionalQuestion, findImageForQuestion } from './services/geminiService';
 import ConfigForm from './components/ConfigForm';
 import LoadingScreen from './components/LoadingScreen';
 import QuestionCard from './components/QuestionCard';
@@ -14,6 +14,9 @@ export const App: React.FC = () => {
   const [exam, setExam] = useState<GeneratedExam | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showPromo, setShowPromo] = useState(false);
+  
+  // Track which question is currently searching for an image
+  const [searchingImageId, setSearchingImageId] = useState<string | null>(null);
 
   useEffect(() => {
     // Show promo modal on initial load
@@ -97,6 +100,29 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleSearchImage = async (questionId: string, text: string) => {
+    if (!exam) return;
+    if (!text.trim()) {
+        alert("Mohon isi teks soal terlebih dahulu sebelum mencari gambar.");
+        return;
+    }
+    
+    setSearchingImageId(questionId);
+    try {
+        const imageUrl = await findImageForQuestion(text, exam.config.subject);
+        if (imageUrl) {
+            handleUpdateQuestion(questionId, { imageUrl });
+        } else {
+            alert("Maaf, AI tidak menemukan gambar yang cocok untuk soal ini. Silakan coba upload manual atau ubah kata kunci soal.");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Terjadi kesalahan saat mencari gambar.");
+    } finally {
+        setSearchingImageId(null);
+    }
+  };
+
   const handleReset = () => {
     if(window.confirm("Yakin ingin kembali? Soal yang belum disimpan akan hilang.")) {
         setExam(null);
@@ -109,7 +135,7 @@ export const App: React.FC = () => {
       <PromoModal isOpen={showPromo} onClose={() => setShowPromo(false)} />
 
       {/* Navbar / Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0">
@@ -119,24 +145,26 @@ export const App: React.FC = () => {
             </div>
             {exam && !loading && (
                 <button 
+                    type="button"
                     onClick={handleReset}
-                    className="text-sm font-medium text-slate-500 hover:text-slate-800 flex items-center px-3 py-1.5 rounded-md hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+                    className="flex items-center px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-all active:scale-95 shadow-sm"
+                    title="Kembali ke konfigurasi awal"
                 >
-                    <ArrowLeft size={16} className="mr-1"/> 
+                    <ArrowLeft size={16} className="mr-2"/> 
                     <span className="hidden sm:inline">Buat Baru</span>
-                    <span className="sm:hidden">Baru</span>
+                    <span className="sm:hidden">Kembali</span>
                 </button>
             )}
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 pt-8 flex-grow w-full">
+      <main className="max-w-4xl mx-auto px-4 pt-8 flex-grow w-full relative z-0">
         
         {/* Error State */}
         {error && (
-            <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6 border border-red-200 flex justify-between items-center">
+            <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6 border border-red-200 flex justify-between items-center animate-fadeIn">
                 <span>{error}</span>
-                <button onClick={() => setError(null)} className="font-bold">&times;</button>
+                <button onClick={() => setError(null)} className="font-bold p-2 hover:bg-red-100 rounded">&times;</button>
             </div>
         )}
 
@@ -147,8 +175,8 @@ export const App: React.FC = () => {
             <ConfigForm onGenerate={handleGenerate} isGenerating={loading} />
         ) : (
             <div className="animate-fadeIn pb-12">
-                <div className="mb-6 flex items-start sm:items-end justify-between">
-                    <div className="flex items-center space-x-4">
+                <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                    <div className="flex items-start space-x-4">
                         {exam.config.logoUrl && (
                             <img 
                                 src={exam.config.logoUrl} 
@@ -157,12 +185,17 @@ export const App: React.FC = () => {
                             />
                         )}
                         <div>
-                            <h2 className="text-2xl font-bold text-slate-900">{exam.config.purpose}</h2>
-                            <p className="text-slate-500">{exam.config.subject} • {exam.config.topic}</p>
+                            <h2 className="text-2xl font-bold text-slate-900 leading-tight">{exam.config.purpose}</h2>
+                            <p className="text-slate-500 mt-1">{exam.config.subject} • {exam.config.topic}</p>
+                            {exam.config.institution && (
+                                <p className="text-xs text-slate-400 font-medium mt-1 uppercase tracking-wide">
+                                    {exam.config.institution}
+                                </p>
+                            )}
                         </div>
                     </div>
-                    <div className="text-right hidden sm:block">
-                        <span className="text-xs font-semibold bg-slate-200 text-slate-600 px-2 py-1 rounded">
+                    <div className="flex items-center justify-between sm:block w-full sm:w-auto">
+                        <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-3 py-1 rounded-full border border-blue-200">
                             {exam.questions.length} Soal
                         </span>
                     </div>
@@ -177,6 +210,8 @@ export const App: React.FC = () => {
                             onUpdate={handleUpdateQuestion}
                             onDelete={handleDeleteQuestion}
                             onDuplicate={handleDuplicateQuestion}
+                            onSearchImage={handleSearchImage}
+                            isSearchingImage={searchingImageId === q.id}
                         />
                     ))}
                 </div>
@@ -211,7 +246,7 @@ export const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 mt-8">
+      <footer className="bg-white border-t border-slate-200 py-6 mt-8 relative z-10">
         <div className="max-w-4xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between text-sm text-slate-500 gap-4">
           <div className="flex items-center space-x-1">
             <span>Dibuat dengan</span>

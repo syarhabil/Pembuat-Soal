@@ -28,7 +28,13 @@ export enum LearningPurpose {
   HOMEWORK = 'Tugas Mandiri'
 }
 
+export type TeacherIdType = 'NIP' | 'NIY' | 'NIDN' | 'NIK' | 'Lainnya';
+
 export interface ExamConfig {
+  institution: string; // Nama Sekolah / Kampus
+  teacherName: string; // Nama Guru / Dosen
+  idType: TeacherIdType; // NIP/NIY/dll
+  teacherId: string; // Nomornya
   subject: string;
   topic: string;
   grade: string; // Kelas/Semester
@@ -45,6 +51,7 @@ export interface ExamConfig {
 export interface Question {
   id: string;
   text: string;
+  imageUrl?: string; // Optional image URL (Base64 or Remote URL)
   type: QuestionType;
   cognitiveLevel: CognitiveLevel; // For labeling
   options?: string[]; // For Multiple Choice

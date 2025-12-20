@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ExamConfig, EducationLevel, LearningPurpose, CognitiveLevel, QuestionType } from '../types';
-import { BookOpen, Target, PenTool, Sparkles, Upload, Image as ImageIcon, X } from 'lucide-react';
+import { ExamConfig, EducationLevel, LearningPurpose, CognitiveLevel, QuestionType, TeacherIdType } from '../types';
+import { BookOpen, Target, PenTool, Sparkles, Upload, Image as ImageIcon, X, Building2, User } from 'lucide-react';
 
 interface ConfigFormProps {
   onGenerate: (config: ExamConfig) => void;
@@ -10,6 +10,10 @@ interface ConfigFormProps {
 const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [config, setConfig] = useState<ExamConfig>({
+    institution: '',
+    teacherName: '',
+    idType: 'NIP',
+    teacherId: '',
     subject: '',
     topic: '',
     grade: '',
@@ -29,10 +33,31 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
     if (savedLogo) {
       setConfig(prev => ({ ...prev, logoUrl: savedLogo }));
     }
+    // Try to load saved institution/teacher info for convenience
+    const savedIdentity = localStorage.getItem('soalgen_identity');
+    if (savedIdentity) {
+        try {
+            const parsed = JSON.parse(savedIdentity);
+            setConfig(prev => ({ ...prev, ...parsed }));
+        } catch (e) {}
+    }
   }, []);
 
   const handleChange = (field: keyof ExamConfig, value: any) => {
-    setConfig(prev => ({ ...prev, [field]: value }));
+    setConfig(prev => {
+        const newConfig = { ...prev, [field]: value };
+        // Auto-save identity fields to local storage for convenience
+        if (['institution', 'teacherName', 'idType', 'teacherId'].includes(field)) {
+            const identity = {
+                institution: newConfig.institution,
+                teacherName: newConfig.teacherName,
+                idType: newConfig.idType,
+                teacherId: newConfig.teacherId
+            };
+            localStorage.setItem('soalgen_identity', JSON.stringify(identity));
+        }
+        return newConfig;
+    });
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,66 +120,126 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
           <Sparkles className="w-6 h-6 text-yellow-500 mr-2" />
           Konfigurasi Soal
         </h2>
-        <p className="text-slate-500 mt-1">Isi detail di bawah untuk menghasilkan soal yang presisi.</p>
+        <p className="text-slate-500 mt-1">Isi identitas dan detail materi untuk menghasilkan soal yang presisi.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
-        {/* Section 1: Basic Info */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center">
-            <BookOpen className="w-4 h-4 mr-2" /> Informasi Dasar
-          </h3>
+        {/* Section 1: Identity & Header */}
+        <div className="space-y-5">
+            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center pb-2 border-b border-slate-100">
+                <Building2 className="w-4 h-4 mr-2" /> Identitas Institusi
+            </h3>
 
-          {/* Logo Upload Section */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Logo Sekolah / Instansi (Opsional)</label>
-            <div className="flex items-center space-x-4">
-              {config.logoUrl ? (
-                <div className="relative group">
-                    <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-slate-50">
-                        <img src={config.logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
+            {/* Logo Upload Section */}
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Logo Sekolah / Instansi (Opsional)</label>
+                <div className="flex items-center space-x-4">
+                {config.logoUrl ? (
+                    <div className="relative group">
+                        <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden flex items-center justify-center bg-slate-50">
+                            <img src={config.logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
+                        </div>
+                        <button 
+                            onClick={removeLogo}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 transition-colors"
+                            title="Hapus Logo"
+                        >
+                            <X size={12} />
+                        </button>
                     </div>
-                    <button 
-                        onClick={removeLogo}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 transition-colors"
-                        title="Hapus Logo"
-                    >
-                        <X size={12} />
-                    </button>
-                </div>
-              ) : (
-                <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-16 h-16 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-all"
-                >
-                    <ImageIcon size={20} />
-                    <span className="text-[10px] mt-1">Upload</span>
-                </div>
-              )}
-              
-              <div className="flex-1">
-                <input 
-                    type="file" 
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                />
-                 {!config.logoUrl && (
-                    <button 
+                ) : (
+                    <div 
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-sm text-blue-600 font-medium hover:underline flex items-center"
+                        className="w-16 h-16 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-all"
                     >
-                        <Upload size={14} className="mr-1" /> Pilih Logo
-                    </button>
-                 )}
-                 <p className="text-xs text-slate-400 mt-1">
-                    Format: PNG/JPG. Disimpan sementara di browser.
-                 </p>
-              </div>
+                        <ImageIcon size={20} />
+                        <span className="text-[10px] mt-1">Upload</span>
+                    </div>
+                )}
+                
+                <div className="flex-1">
+                    <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                    />
+                    {!config.logoUrl && (
+                        <button 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="text-sm text-blue-600 font-medium hover:underline flex items-center"
+                        >
+                            <Upload size={14} className="mr-1" /> Pilih Logo
+                        </button>
+                    )}
+                    <p className="text-xs text-slate-400 mt-1">
+                        Akan tampil di Kop Surat (Word/PDF).
+                    </p>
+                </div>
+                </div>
             </div>
-          </div>
+
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Nama Sekolah / Universitas</label>
+                <input 
+                    type="text" 
+                    placeholder="Contoh: SMA Negeri 1 Jakarta / Universitas Indonesia"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-slate-900"
+                    value={config.institution}
+                    onChange={(e) => handleChange('institution', e.target.value)}
+                />
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 space-y-3">
+                <div className="flex items-center text-slate-500 text-xs font-semibold uppercase tracking-wide mb-2">
+                    <User className="w-3 h-3 mr-1" /> Data Pengajar
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Nama Guru / Dosen</label>
+                    <input 
+                        type="text" 
+                        placeholder="Nama Lengkap dengan Gelar"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-slate-900"
+                        value={config.teacherName}
+                        onChange={(e) => handleChange('teacherName', e.target.value)}
+                    />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Tipe ID</label>
+                        <select
+                            className="w-full px-2 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                            value={config.idType}
+                            onChange={(e) => handleChange('idType', e.target.value)}
+                        >
+                            <option value="NIP">NIP</option>
+                            <option value="NIY">NIY</option>
+                            <option value="NIDN">NIDN</option>
+                            <option value="NIK">NIK</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div className="col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Nomor ID</label>
+                        <input 
+                            type="text" 
+                            placeholder="Contoh: 19800101..."
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-slate-900"
+                            value={config.teacherId}
+                            onChange={(e) => handleChange('teacherId', e.target.value)}
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* Section 2: Exam Material */}
+        <div className="space-y-5">
+          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center pb-2 border-b border-slate-100">
+            <BookOpen className="w-4 h-4 mr-2" /> Materi & Spesifikasi
+          </h3>
           
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Mata Pelajaran / Kuliah <span className="text-red-500">*</span></label>
@@ -168,7 +253,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Materi / Topik Spesifik <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Topik Spesifik <span className="text-red-500">*</span></label>
             <input 
               type="text" 
               placeholder="Contoh: Hukum Newton, Aljabar Linear"
@@ -200,13 +285,6 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ onGenerate, isGenerating }) => 
                 />
             </div>
           </div>
-        </div>
-
-        {/* Section 2: Exam Specs */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center">
-            <Target className="w-4 h-4 mr-2" /> Spesifikasi Soal
-          </h3>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
